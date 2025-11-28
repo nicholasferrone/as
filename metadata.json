@@ -1,0 +1,5 @@
+{
+  "name": "DreamWeaver Storybook",
+  "description": "Transforms short text prompts into magical, illustrated storybooks using Gemini AI.",
+  "requestFramePermissions": []
+}
