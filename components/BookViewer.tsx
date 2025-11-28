@@ -3,8 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Story, StoryPage } from '../types';
 import { generatePageAudio } from '../services/gemini';
 import { generateEpub } from '../services/epubGenerator';
-import { generateStandaloneHtml, generateProjectZip, audioBufferToWav } from '../services/htmlGenerator';
-import { ChevronLeft, ChevronRight, Sparkles, BookOpen, RefreshCcw, Volume2, StopCircle, Loader2, Download, Edit2, RotateCcw, Check, Package, Github } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Sparkles, BookOpen, RefreshCcw, Volume2, StopCircle, Loader2, Download, Edit2, RotateCcw, Check } from 'lucide-react';
 
 interface BookViewerProps {
   story: Story;
@@ -29,8 +28,6 @@ export const BookViewer: React.FC<BookViewerProps> = ({ story, onReset, onUpdate
 
   // Download State
   const [isDownloading, setIsDownloading] = useState(false);
-  const [isExportingApp, setIsExportingApp] = useState(false);
-  const [isExportingGithub, setIsExportingGithub] = useState(false);
   
   // Refs for audio management
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -284,63 +281,6 @@ export const BookViewer: React.FC<BookViewerProps> = ({ story, onReset, onUpdate
     }
   };
   
-  // --- HELPER TO GET AUDIO MAP ---
-  const getAudioMap = () => {
-      const audioMap: Record<number, string> = {};
-      for (const [index, data] of audioCacheRef.current.entries()) {
-        const currentText = getTextForIndex(index);
-        if (data.text === currentText) {
-            audioMap[index] = audioBufferToWav(data.buffer);
-        }
-      }
-      return audioMap;
-  };
-
-  // --- EXPORT APP LOGIC ---
-  const handleExportApp = () => {
-      setIsExportingApp(true);
-      try {
-          const audioMap = getAudioMap();
-          const htmlContent = generateStandaloneHtml(story, audioMap);
-          const blob = new Blob([htmlContent], { type: 'text/html' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          // Note: We name it .html because browsers won't download .exe from web apps easily
-          a.download = `${story.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_App.html`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-      } catch (e) {
-          console.error("Export app failed", e);
-      } finally {
-          setIsExportingApp(false);
-      }
-  };
-  
-  // --- EXPORT GITHUB PROJECT LOGIC ---
-  const handleExportGithub = async () => {
-      setIsExportingGithub(true);
-      try {
-          const audioMap = getAudioMap();
-          const zipBlob = await generateProjectZip(story, audioMap);
-          
-          const url = URL.createObjectURL(zipBlob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${story.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_github_project.zip`;
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-      } catch (e) {
-          console.error("Export GitHub project failed", e);
-      } finally {
-          setIsExportingGithub(false);
-      }
-  };
-
   // --- RENDER ---
 
   const currentPageData: StoryPage | undefined = !isCover && !isEnd ? story.pages[currentPageIndex] : undefined;
@@ -560,26 +500,6 @@ export const BookViewer: React.FC<BookViewerProps> = ({ story, onReset, onUpdate
                   >
                     {isDownloading ? <Loader2 className="animate-spin" size={20} /> : <Download size={20} />}
                     {isDownloading ? 'Building eBook...' : 'Download eBook (.epub)'}
-                  </button>
-
-                  {/* New: Export GitHub Project */}
-                  <button 
-                    onClick={handleExportGithub}
-                    disabled={isExportingGithub}
-                    className="px-8 py-3 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-full transition-all flex items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed justify-center"
-                  >
-                    {isExportingGithub ? <Loader2 className="animate-spin" size={20} /> : <Github size={20} />}
-                    {isExportingGithub ? 'Zipping Project...' : 'Download Project (GitHub)'}
-                  </button>
-
-                    {/* Secondary: Export Standalone App (Executable-like) */}
-                    <button 
-                    onClick={handleExportApp}
-                    disabled={isExportingApp}
-                    className="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-full transition-all flex items-center gap-2 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed justify-center"
-                  >
-                    {isExportingApp ? <Loader2 className="animate-spin" size={20} /> : <Package size={20} />}
-                    {isExportingApp ? 'Packaging App...' : 'Download App (.html)'}
                   </button>
 
                   {/* New: Read Again */}
